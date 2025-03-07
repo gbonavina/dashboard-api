@@ -5,6 +5,7 @@ dotenv.config();
 
 const cache = new NodeCache({stdTTL: 3600});
 const API_KEY = process.env.API_KEY;
+console.log("API_KEY utilizada:", API_KEY);
 
 async function getStockData_Weekly(ticker) {
     const API_URL_AV = `https://www.alphavantage.co/query?function=TIME_SERIES_WEEKLY_ADJUSTED&symbol=${ticker}&apikey=${API_KEY}`;
