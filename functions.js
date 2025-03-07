@@ -212,6 +212,6 @@ function detectarTipoAtivo(ticker) {
     return "desconhecido";
 }
 
-export { getStockData_Weekly_CACHED, getStockData_Daily_CACHED, validateData, detectarTipoAtivo };
+export { getStockData_Weekly, getStockData_Daily, validateData, detectarTipoAtivo };
 
 // getStockData_Daily("BBAS3.SAO", "24-02-2025", "06-03-2025");
