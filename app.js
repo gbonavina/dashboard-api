@@ -23,9 +23,9 @@ app.get("/stock/weekly/:ticker", async (req, res) => {
 
     try {
         const stockData = await getStockData_Weekly_CACHED(ticker);
-        if (!stockData) { 
-            return res.status(404).json({ error: "Dados não encontrados." });
-        }
+        // if (!stockData) { 
+        //     return res.status(404).json({ error: "Dados não encontrados." });
+        // }
         return res.json(stockData);
     } catch {
         console.error("Erro ao buscar dados.");
