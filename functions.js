@@ -11,16 +11,20 @@ async function getStockData_Weekly(ticker) {
     const API_URL_AV = `https://www.alphavantage.co/query?function=TIME_SERIES_WEEKLY_ADJUSTED&symbol=${ticker}&apikey=${API_KEY}`;
 
     try {
-        const response = await axios.get(API_URL_AV);
-        console.log("Resposta da API:", response.data);
+        const response = await axios.get(API_URL_AV, { timeout: 15000 });
+        console.log("Resposta completa da Alpha Vantage:", response.data);
+
+        if (response.data["Note"]) {
+            console.error("Aviso da Alpha Vantage:", response.data["Note"]);
+            return null;
+        }
 
         if (!response.data["Weekly Adjusted Time Series"]) {
             console.error("Erro: Dados históricos não encontrados.");
-            return;
+            return null;
         }
 
         const data = response.data["Weekly Adjusted Time Series"];
-
         const stockPrices = Object.keys(data).map(date => ({
             date: date,
             open: parseFloat(data[date]["1. open"]),
@@ -35,8 +39,10 @@ async function getStockData_Weekly(ticker) {
         return stockPrices;
     } catch (error) { 
         console.error("Erro ao buscar dados:", error);
+        return null;
     }
 }
+
 
 async function getStockData_Weekly_CACHED(ticker) {
     // implementaçao de cache
