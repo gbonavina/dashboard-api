@@ -12,7 +12,7 @@ async function getStockData_Weekly(ticker) {
 
     try {
         const response = await axios.get(API_URL_AV);
-        // console.log("Resposta da API:", response.data);
+        console.log("Resposta da API:", response.data);
 
         if (!response.data["Weekly Adjusted Time Series"]) {
             console.error("Erro: Dados históricos não encontrados.");
