@@ -8,7 +8,7 @@ const API_KEY = process.env.API_KEY;
 console.log("API_KEY utilizada:", API_KEY);
 
 async function getStockData_Weekly(ticker) {
-    const API_URL_AV = `https://www.alphavantage.co/query?function=TIME_SERIES_WEEKLY_ADJUSTED&symbol=${ticker}&apikey=${API_KEY}`;
+    const API_URL_AV = `https://www.alphavantage.co/query?function=TIME_SERIES_WEEKLY_ADJUSTED&symbol=${ticker}.SAO&apikey=${API_KEY}`;
 
     try {
         const response = await axios.get(API_URL_AV, { timeout: 15000 });
@@ -118,7 +118,7 @@ async function getStockData_Daily(ticker, start, end) {
     //    return null;
     // }
 
-    const API_URL_AV = `https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol=${ticker}&apikey=${API_KEY}`;
+    const API_URL_AV = `https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol=${ticker}.SAO&apikey=${API_KEY}`;
     
     try {
         const response = await axios.get(API_URL_AV);
