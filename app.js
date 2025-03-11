@@ -3,6 +3,10 @@ import { getStockData_Weekly_CACHED, getStockData_Daily_CACHED, validateData, de
 
 const app = express();
 const port = process.env.PORT || 3000; 
+
+const cors = require("cors");
+app.use(cors()); // Permite requisições de qualquer origem
+
 app.listen(port, () => {
     console.log(`API de dados de ações rodando em http://localhost:${port}`);
 });
