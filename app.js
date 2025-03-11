@@ -5,11 +5,7 @@ const app = express();
 const port = process.env.PORT || 5000; 
 
 import cors from "cors";
-app.use(cors({
-  origin: "http://localhost:3000",
-  methods: "GET,POST,PUT,DELETE", 
-  allowedHeaders: "Content-Type,Authorization"
-}));
+app.use(cors()); 
 
 app.listen(port, () => {
     console.log(`API de dados de ações rodando em http://localhost:${port}`);
