@@ -2,10 +2,14 @@ import express from 'express';
 import { getStockData_Weekly_CACHED, getStockData_Daily_CACHED, validateData, detectarTipoAtivo } from './functions.js';
 
 const app = express();
-const port = process.env.PORT || 3000; 
+const port = process.env.PORT || 5000; 
 
-const cors = require("cors");
-app.use(cors()); // Permite requisições de qualquer origem
+import cors from "cors";
+app.use(cors({
+  origin: "http://localhost:3000",
+  methods: "GET,POST,PUT,DELETE", 
+  allowedHeaders: "Content-Type,Authorization"
+}));
 
 app.listen(port, () => {
     console.log(`API de dados de ações rodando em http://localhost:${port}`);
