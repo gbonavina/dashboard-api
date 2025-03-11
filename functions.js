@@ -121,9 +121,15 @@ async function getStockData_Daily(ticker, start, end) {
     const API_URL_AV = `https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol=${ticker}.SAO&apikey=${API_KEY}`;
     
     try {
-        const response = await axios.get(API_URL_AV);
-        if (!response.data["Time Series (Daily)"]) {
-            console.error("⚠️ Erro: Dados históricos não encontrados na Alpha Vantage.");
+        const response = await axios.get(API_URL_AV, { 
+            timeout: 15000,
+            headers: { "User-Agent": "Mozilla/5.0" } // Adiciona User-Agent
+        });
+    
+        console.log("Resposta da Alpha Vantage:", response.data);
+        
+        if (!response.data || response.data["Error Message"]) {
+            console.error("Erro na API Alpha Vantage:", response.data);
             return null;
         }
 
