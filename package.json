@@ -4,7 +4,7 @@
     "type": "module",
     "main": "backend.js",
     "scripts": {
-        "start": "node backend.js"
+        "start": "node app.js"
     },
     "dependencies": {
         "axios": "^1.4.0",
