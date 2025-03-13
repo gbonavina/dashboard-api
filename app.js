@@ -55,27 +55,25 @@ app.get("/stock/daily/:ticker", async (req, res) => {
 
 // Endpoint para pegar o último valor de uma ação (retorna o registro mais recente dos dados diários)
 app.get("/stock/last_value/:ticker", async (req, res) => { 
-    const { ticker } = req.params;
+  const { ticker } = req.params;
 
-    if (!validateData(ticker)) {
-        return res.status(400).json({ error: "Ticker inválido." });
-    }
+  if (!validateData(ticker)) {
+      return res.status(400).json({ error: "Ticker inválido." });
+  }
 
-    try {
-        // Utiliza o endpoint diário com 5 anos como padrão para buscar todos os dados e retorna o registro mais recente
-        const stockData = await getStockLastValue_CACHED(ticker);
-
-        if (!stockData || stockData.length === 0) {
-            return res.status(404).json({ error: "Dados não encontrados." });
-        }
-
-        // Retorna o registro mais recente (último elemento do array)
-        return res.json(stockData[stockData.length - 1]);
-    } catch (error) {
-        console.error("Erro ao buscar dados:", error);
-        return res.status(503).json({ error: "Erro ao buscar dados." });
-    }
+  try {
+      const lastValue = await getStockLastValue_CACHED(ticker);
+      if (!lastValue) {
+          return res.status(404).json({ error: "Dados não encontrados." });
+      } else {
+          return res.json(lastValue);
+      }
+  } catch (error) {
+      console.error("Erro ao buscar dados.", error);
+      return res.status(503).json({ error: "Erro ao buscar dados." });
+  }
 });
+
 
 app.listen(port, () => {
     console.log(`API de dados de ações rodando em http://localhost:${port}`);
