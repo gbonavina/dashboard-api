@@ -5,12 +5,12 @@ const app = express();
 const port = process.env.PORT || 5000; 
 
 import cors from "cors";
-app.use(cors({
-    origin: "*", // 🔥 Permite qualquer frontend (só para testar!)
-    methods: "GET,POST,OPTIONS",
-    allowedHeaders: "Content-Type,Authorization"
-}));
-
+app.use((req, res, next) => {
+    res.header("Access-Control-Allow-Origin", "*"); // 🔥 Para testes. Troque "*" pelo domínio do frontend na produção
+    res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
+    res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
+    next();
+});
 app.listen(port, () => {
     console.log(`API de dados de ações rodando em http://localhost:${port}`);
 });
