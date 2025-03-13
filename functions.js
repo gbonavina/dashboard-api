@@ -16,80 +16,63 @@ console.log("API_KEY utilizada:", API_KEY);
 async function getStockData_Daily(ticker, anos = 5) {
     try {
         console.log(`🔍 Buscando dados do Yahoo Finance para ${ticker} (${anos} anos)...`);
-        const tickerYahoo = ticker.toUpperCase().includes('.SA') 
-            ? ticker.toUpperCase() 
-            : `${ticker.toUpperCase()}.SA`;
         
-        // Verifica primeiro se conseguimos obter dados básicos do ticker
-        const quoteData = await yahooFinance.quote(tickerYahoo);
-        if (!quoteData || quoteData.tradeable === false) {
-            console.log(`⚠️ Ticker ${tickerYahoo} não possui dados completos no Yahoo Finance.`);
-            
-            // Se você tiver acesso a uma API alternativa, use aqui
-            // Por exemplo, usar os dados da API Finz que você já tem
-            return null;
-        }
+        // Use exatamente a mesma abordagem que funcionou no seu teste
+        const tickerYahoo = `${ticker.toUpperCase()}.SA`;
         
-        // Define a data de hoje e a data de início
+        // Define as datas como no seu teste que funcionou
         const hoje = new Date();
         const dataInicio = new Date();
         dataInicio.setFullYear(hoje.getFullYear() - anos);
         
-        // Tenta o módulo 'historical' em vez de 'chart'
-        // Alguns tickets funcionam melhor com o módulo histórico
-        const queryOptions = {
-            period1: dataInicio.toISOString().split('T')[0],
-            period2: hoje.toISOString().split('T')[0],
+        // Use exatamente os mesmos parâmetros que funcionaram no seu teste
+        const period1 = Math.floor(dataInicio.getTime() / 1000);
+        const period2 = Math.floor(hoje.getTime() / 1000);
+        
+        // Faz a requisição para o Yahoo Finance com os mesmos parâmetros do teste
+        const result = await yahooFinance.chart(tickerYahoo, {
+            period1: period1,
+            period2: period2,
             interval: "1d"
-        };
+        });
         
-        console.log("Opções de consulta:", queryOptions);
+        // Log para depuração
+        console.log("Recebidos dados brutos da API. Quantidade de timestamps:", 
+                  result && result.timestamp ? result.timestamp.length : 0);
         
-        try {
-            // Primeira tentativa com o módulo 'historical'
-            const result = await yahooFinance.historical(tickerYahoo, queryOptions);
-            if (result && result.length > 0) {
-                console.log(`✅ Obtidos ${result.length} registros históricos.`);
-                
-                // O formato do resultado do historical é diferente do chart
-                const stockPrices = result.map(item => ({
-                    date: item.date.toISOString().split('T')[0],
-                    open: item.open,
-                    high: item.high,
-                    low: item.low,
-                    close: item.close,
-                    volume: item.volume
-                }));
-                
-                return stockPrices;
-            }
-        } catch (historicalError) {
-            console.error("Erro ao usar o módulo historical:", historicalError);
+        // Verifica se a resposta é válida
+        if (!result || !result.timestamp || result.timestamp.length === 0) {
+            console.error("⚠️ Erro: Nenhum dado retornado pelo Yahoo Finance.");
+            return null;
         }
         
-        // Segunda tentativa com o módulo 'chart'
+        // Tratamento de exceções no mapeamento
         try {
-            const chartResult = await yahooFinance.chart(tickerYahoo, queryOptions);
+            // Processa os dados retornados
+            const stockPrices = result.timestamp.map((timestamp, index) => {
+                // Verifica se os dados necessários existem antes de acessá-los
+                if (!result.indicators || !result.indicators.quote || !result.indicators.quote[0]) {
+                    throw new Error("Estrutura de dados inválida na resposta da API");
+                }
+                
+                const quote = result.indicators.quote[0];
+                
+                return {
+                    date: new Date(timestamp * 1000).toISOString().split("T")[0],
+                    open: quote.open ? quote.open[index] : null,
+                    high: quote.high ? quote.high[index] : null,
+                    low: quote.low ? quote.low[index] : null,
+                    close: quote.close ? quote.close[index] : null,
+                    volume: quote.volume ? quote.volume[index] : null,
+                };
+            });
             
-            if (chartResult && chartResult.timestamp && chartResult.timestamp.length > 0) {
-                const stockPrices = chartResult.timestamp.map((timestamp, index) => ({
-                    date: new Date(timestamp * 1000).toISOString().split('T')[0],
-                    open: chartResult.indicators.quote[0].open[index],
-                    high: chartResult.indicators.quote[0].high[index],
-                    low: chartResult.indicators.quote[0].low[index],
-                    close: chartResult.indicators.quote[0].close[index],
-                    volume: chartResult.indicators.quote[0].volume[index],
-                }));
-                
-                console.log(`✅ Obtidos ${stockPrices.length} registros via chart.`);
-                return stockPrices;
-            }
-        } catch (chartError) {
-            console.error("Erro ao usar o módulo chart:", chartError);
+            console.log("📊 Dados diários filtrados prontos:", stockPrices.length);
+            return stockPrices;
+        } catch (mappingError) {
+            console.error("Erro ao processar os dados recebidos:", mappingError);
+            return null;
         }
-        
-        console.error("⚠️ Não foi possível obter dados históricos do Yahoo Finance.");
-        return null;
     } catch (error) {
         console.error("❌ Erro ao buscar dados do Yahoo Finance:", error);
         return null;
