@@ -17,19 +17,17 @@ async function getStockData_Daily(ticker, anos = 5) {
     try {
         console.log(`🔍 Buscando dados do Yahoo Finance para ${ticker} (${anos} anos)...`);
         
-        // Use exatamente a mesma abordagem que funcionou no seu teste
+        // Converte o ticker para maiúsculas e concatena ".SA" para ações brasileiras
         const tickerYahoo = `${ticker.toUpperCase()}.SA`;
         
-        // Define as datas como no seu teste que funcionou
+        // Define as datas de início e fim para calcular o período (usando timestamps)
         const hoje = new Date();
         const dataInicio = new Date();
         dataInicio.setFullYear(hoje.getFullYear() - anos);
-        
-        // Use exatamente os mesmos parâmetros que funcionaram no seu teste
         const period1 = Math.floor(dataInicio.getTime() / 1000);
         const period2 = Math.floor(hoje.getTime() / 1000);
         
-        // Faz a requisição para o Yahoo Finance com os mesmos parâmetros do teste
+        // Faz a requisição para o Yahoo Finance usando period1 e period2
         const result = await yahooFinance.chart(tickerYahoo, {
             period1: period1,
             period2: period2,
@@ -37,47 +35,49 @@ async function getStockData_Daily(ticker, anos = 5) {
         });
         
         // Log para depuração
-        console.log("Recebidos dados brutos da API. Quantidade de timestamps:", 
-                  result && result.timestamp ? result.timestamp.length : 0);
-        
-        // Verifica se a resposta é válida
-        if (!result || !result.timestamp || result.timestamp.length === 0) {
+        if (!result) {
             console.error("⚠️ Erro: Nenhum dado retornado pelo Yahoo Finance.");
             return null;
         }
         
-        // Tratamento de exceções no mapeamento
-        try {
-            // Processa os dados retornados
-            const stockPrices = result.timestamp.map((timestamp, index) => {
-                // Verifica se os dados necessários existem antes de acessá-los
-                if (!result.indicators || !result.indicators.quote || !result.indicators.quote[0]) {
-                    throw new Error("Estrutura de dados inválida na resposta da API");
-                }
-                
-                const quote = result.indicators.quote[0];
-                
-                return {
-                    date: new Date(timestamp * 1000).toISOString().split("T")[0],
-                    open: quote.open ? quote.open[index] : null,
-                    high: quote.high ? quote.high[index] : null,
-                    low: quote.low ? quote.low[index] : null,
-                    close: quote.close ? quote.close[index] : null,
-                    volume: quote.volume ? quote.volume[index] : null,
-                };
-            });
-            
-            console.log("📊 Dados diários filtrados prontos:", stockPrices.length);
-            return stockPrices;
-        } catch (mappingError) {
-            console.error("Erro ao processar os dados recebidos:", mappingError);
+        // Se a resposta possui 'quotes', usamos ela
+        let stockPrices = [];
+        if (result.quotes && Array.isArray(result.quotes)) {
+            stockPrices = result.quotes.map(quote => ({
+                date: new Date(quote.date).toISOString().split("T")[0],
+                open: quote.open,
+                high: quote.high,
+                low: quote.low,
+                close: quote.close,
+                volume: quote.volume,
+            }));
+        } else if (result.timestamp && result.indicators && result.indicators.quote) {
+            // Caso a estrutura seja a do teste simples, use essa abordagem:
+            stockPrices = result.timestamp.map((timestamp, index) => ({
+                date: new Date(timestamp * 1000).toISOString().split("T")[0],
+                open: result.indicators.quote[0].open[index],
+                high: result.indicators.quote[0].high[index],
+                low: result.indicators.quote[0].low[index],
+                close: result.indicators.quote[0].close[index],
+                volume: result.indicators.quote[0].volume[index],
+            }));
+        } else {
+            console.error("⚠️ Erro: Estrutura de dados desconhecida.");
             return null;
         }
+        
+        // Filtra os dados a partir da data de início (opcional se a API já retornar só esse período)
+        const dataInicioFormatada = dataInicio.toISOString().split("T")[0];
+        const dadosFiltrados = stockPrices.filter(dado => dado.date >= dataInicioFormatada);
+        
+        console.log("📊 Dados filtrados prontos:", dadosFiltrados);
+        return dadosFiltrados;
     } catch (error) {
         console.error("❌ Erro ao buscar dados do Yahoo Finance:", error);
         return null;
     }
 }
+
 /**
  * Versão cacheada da função getStockData_Daily.
  */
