@@ -16,27 +16,45 @@ console.log("API_KEY utilizada:", API_KEY);
 async function getStockData_Daily(ticker, anos = 5) {
     try {
         console.log(`🔍 Buscando dados do Yahoo Finance para ${ticker} (${anos} anos)...`);
-        // Converte o ticker para o formato correto (ex.: "BBAS3" → "BBAS3.SA")
-        const tickerYahoo = `${ticker.toUpperCase()}.SA`;
+        
+        // Converte o ticker para o formato correto para o mercado brasileiro
+        const tickerYahoo = ticker.toUpperCase().includes('.SA') 
+            ? ticker.toUpperCase() 
+            : `${ticker.toUpperCase()}.SA`;
         
         // Define a data de hoje e a data de início (anos atrás)
         const hoje = new Date();
         const dataInicio = new Date();
         dataInicio.setFullYear(hoje.getFullYear() - anos);
         
-        // Usar string ISO ou objeto Date diretamente
-        // A biblioteca fará a conversão internamente
-        
-        // Faz a requisição para o Yahoo Finance 
+        // Tenta fazer a requisição com as configurações mais básicas
         const result = await yahooFinance.chart(tickerYahoo, {
-            period1: dataInicio,  // Use o objeto Date diretamente
-            period2: hoje,        // Use o objeto Date diretamente
-            interval: "1d"
+            period1: dataInicio,
+            period2: hoje,
+            interval: "1d",
+            includePrePost: false,
+            events: "div,split"
         });
+        
+        // Log detalhado para depurar o que está sendo retornado
+        console.log("Resposta da API Yahoo Finance:", 
+                  result ? JSON.stringify(result).substring(0, 100) + "..." : "Sem dados");
         
         // Verifica se a resposta é válida
         if (!result || !result.timestamp || result.timestamp.length === 0) {
             console.error("⚠️ Erro: Nenhum dado retornado pelo Yahoo Finance.");
+            
+            // Vamos verificar se o ticker existe
+            try {
+                const quote = await yahooFinance.quote(tickerYahoo);
+                console.log(`Informações básicas para ${tickerYahoo}:`, quote);
+                if (!quote) {
+                    console.error(`Ticker ${tickerYahoo} parece não existir na API do Yahoo Finance.`);
+                }
+            } catch (quoteError) {
+                console.error(`Erro ao verificar o ticker ${tickerYahoo}:`, quoteError);
+            }
+            
             return null;
         }
         
@@ -50,7 +68,7 @@ async function getStockData_Daily(ticker, anos = 5) {
             volume: result.indicators.quote[0].volume[index],
         }));
         
-        console.log("📊 Dados diários filtrados prontos:", stockPrices);
+        console.log("📊 Dados diários filtrados prontos:", stockPrices.length);
         return stockPrices;
     } catch (error) {
         console.error("❌ Erro ao buscar dados do Yahoo Finance:", error);
