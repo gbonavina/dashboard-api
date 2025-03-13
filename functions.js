@@ -24,23 +24,23 @@ async function getStockData_Daily(ticker, anos = 5) {
         const dataInicio = new Date();
         dataInicio.setFullYear(hoje.getFullYear() - anos);
         
-        // Usar o formato de objeto com a propriedade 'raw' conforme esperado pelo esquema
-        const period1 = { raw: Math.floor(dataInicio.getTime() / 1000) };
-        const period2 = { raw: Math.floor(hoje.getTime() / 1000) };
+        // Usar string ISO ou objeto Date diretamente
+        // A biblioteca fará a conversão internamente
         
-        // Faz a requisição para o Yahoo Finance usando period1 e period2
+        // Faz a requisição para o Yahoo Finance 
         const result = await yahooFinance.chart(tickerYahoo, {
-            period1: period1,
-            period2: period2,
+            period1: dataInicio,  // Use o objeto Date diretamente
+            period2: hoje,        // Use o objeto Date diretamente
             interval: "1d"
         });
         
-        // Resto do código permanece o mesmo
+        // Verifica se a resposta é válida
         if (!result || !result.timestamp || result.timestamp.length === 0) {
             console.error("⚠️ Erro: Nenhum dado retornado pelo Yahoo Finance.");
             return null;
         }
         
+        // Processa os dados retornados
         const stockPrices = result.timestamp.map((timestamp, index) => ({
             date: new Date(timestamp * 1000).toISOString().split("T")[0],
             open: result.indicators.quote[0].open[index],
@@ -57,8 +57,6 @@ async function getStockData_Daily(ticker, anos = 5) {
         return null;
     }
 }
-
-
 
 /**
  * Versão cacheada da função getStockData_Daily.
