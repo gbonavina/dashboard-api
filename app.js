@@ -38,25 +38,29 @@ app.get("/stock/weekly/:ticker", async (req, res) => {
 
 });
 
-// endpoint para pegar o historico diário de uma ação
 app.get("/stock/daily/:ticker", async (req, res) => {
     const { ticker } = req.params;
-    const { start, end } = req.query;
+    const anos = req.query.anos ? parseInt(req.query.anos) : 5; // 📌 Padrão: 5 anos
 
     if (!validateData(ticker)) {
         return res.status(400).json({ error: "Ticker inválido." });
     }
 
-    try {
-        const stockData = await getStockData_Daily_CACHED(ticker, start, end);
-        console.log(stockData);
+    if (![5, 10].includes(anos)) {
+        return res.status(400).json({ error: "O parâmetro 'anos' deve ser 5 ou 10." });
+    }
 
-        if (!stockData) { 
+    try {
+        console.log(`🔄 Buscando dados de ${ticker} para os últimos ${anos} anos...`);
+        const stockData = await getStockData_Daily_CACHED(ticker, anos);
+
+        if (!stockData || stockData.length === 0) { 
             return res.status(404).json({ error: "Dados não encontrados." });
         }
+
         return res.json(stockData);
-    } catch {
-        console.error("Erro ao buscar dados.");
+    } catch (error) {
+        console.error("❌ Erro ao buscar dados:", error);
         return res.status(503).json({ error: "Erro ao buscar dados." });
     }
 });
