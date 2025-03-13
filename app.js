@@ -1,6 +1,6 @@
 import express from 'express';
 import { 
-  getStockData_Weekly_CACHED, 
+  getStockLastValue_CACHED, 
   getStockData_Daily_CACHED, 
   validateData, 
   detectarTipoAtivo 
@@ -22,23 +22,6 @@ app.use(express.json());
 
 app.get("/", (req, res) => {
     res.send("Bem vindo à API de dados de ações!");
-});
-
-// Endpoint para pegar o histórico semanal de uma ação
-app.get("/stock/weekly/:ticker", async (req, res) => {
-    const { ticker } = req.params;
-
-    if (!validateData(ticker)) {
-        return res.status(400).json({ error: "Ticker inválido." });
-    }
-
-    try {
-        const stockData = await getStockData_Weekly_CACHED(ticker);
-        return res.json(stockData);
-    } catch (error) {
-        console.error("Erro ao buscar dados:", error);
-        return res.status(503).json({ error: "Erro ao buscar dados." });
-    }
 });
 
 // Endpoint para pegar o histórico diário de uma ação (Yahoo Finance)
@@ -80,7 +63,7 @@ app.get("/stock/last_value/:ticker", async (req, res) => {
 
     try {
         // Utiliza o endpoint diário com 5 anos como padrão para buscar todos os dados e retorna o registro mais recente
-        const stockData = await getStockData_Daily_CACHED(ticker, 5);
+        const stockData = await getStockLastValue_CACHED(ticker);
 
         if (!stockData || stockData.length === 0) {
             return res.status(404).json({ error: "Dados não encontrados." });
