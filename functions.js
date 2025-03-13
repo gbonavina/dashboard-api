@@ -16,33 +16,31 @@ console.log("API_KEY utilizada:", API_KEY);
 async function getStockData_Daily(ticker, anos = 5) {
     try {
         console.log(`🔍 Buscando dados do Yahoo Finance para ${ticker} (${anos} anos)...`);
-
         // Converte o ticker para o formato correto (ex.: "BBAS3" → "BBAS3.SA")
         const tickerYahoo = `${ticker.toUpperCase()}.SA`;
-
+        
         // Define a data de hoje e a data de início (anos atrás)
         const hoje = new Date();
         const dataInicio = new Date();
         dataInicio.setFullYear(hoje.getFullYear() - anos);
-
-        // Converte as datas para timestamps (em segundos)
-        const period1 = Math.floor(dataInicio.getTime() / 1000);
-        const period2 = Math.floor(hoje.getTime() / 1000);
-
+        
+        // Usar o formato de objeto com a propriedade 'raw' conforme esperado pelo esquema
+        const period1 = { raw: Math.floor(dataInicio.getTime() / 1000) };
+        const period2 = { raw: Math.floor(hoje.getTime() / 1000) };
+        
         // Faz a requisição para o Yahoo Finance usando period1 e period2
         const result = await yahooFinance.chart(tickerYahoo, {
             period1: period1,
             period2: period2,
             interval: "1d"
         });
-
-        // Verifica se a resposta é válida
+        
+        // Resto do código permanece o mesmo
         if (!result || !result.timestamp || result.timestamp.length === 0) {
             console.error("⚠️ Erro: Nenhum dado retornado pelo Yahoo Finance.");
             return null;
         }
-
-        // Processa os dados retornados
+        
         const stockPrices = result.timestamp.map((timestamp, index) => ({
             date: new Date(timestamp * 1000).toISOString().split("T")[0],
             open: result.indicators.quote[0].open[index],
@@ -51,8 +49,7 @@ async function getStockData_Daily(ticker, anos = 5) {
             close: result.indicators.quote[0].close[index],
             volume: result.indicators.quote[0].volume[index],
         }));
-
-        // Aqui, os dados já estão limitados pelo período passado (period1 a period2)
+        
         console.log("📊 Dados diários filtrados prontos:", stockPrices);
         return stockPrices;
     } catch (error) {
