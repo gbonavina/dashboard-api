@@ -165,23 +165,25 @@ async function getStockData_Daily(ticker, start, end) {
 
 
 async function getStockData_Daily_CACHED(ticker, start, end) {
-    // implementaçao de cache
-    const cacheKey = `stockData_Daily_${ticker}`;
+    // Gera uma chave única para cada combinação de ticker, start e end
+    const cacheKey = `stockData_Daily_${ticker}_${start || "null"}_${end || "null"}`;
     const cachedData = cache.get(cacheKey);
+
     if (cachedData) {
-        console.log("Dados encontrados em cache");
+        console.log(`📦 Dados encontrados em cache para ${ticker} (${start} - ${end})`);
         return cachedData;
     }
-    else {
-        const stockData = await getStockData_Daily(ticker, start, end);
 
-        if (stockData) {
-            cache.set(cacheKey, stockData);
-        }
-        return stockData;
+    console.log(`🔄 Buscando novos dados para ${ticker} (${start} - ${end})`);
+    const stockData = await getStockData_Daily(ticker, start, end);
+
+    if (stockData) {
+        cache.set(cacheKey, stockData);
     }
 
+    return stockData;
 }
+
 
 function validateData(ticker) {
     if (!ticker) {
