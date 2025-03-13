@@ -5,7 +5,11 @@ const app = express();
 const port = process.env.PORT || 5000; 
 
 import cors from "cors";
-app.use(cors()); 
+app.use(cors({
+    origin: "*", // 🔥 Permite qualquer frontend (só para testar!)
+    methods: "GET,POST,OPTIONS",
+    allowedHeaders: "Content-Type,Authorization"
+}));
 
 app.listen(port, () => {
     console.log(`API de dados de ações rodando em http://localhost:${port}`);
