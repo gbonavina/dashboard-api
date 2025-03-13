@@ -113,6 +113,8 @@ async function getStockLastValue(ticker) {
       return null;
     }
 
+    console.log("Dados recebidos da finz");
+    
     // Supondo que a API Finz retorne um objeto onde a primeira chave possui os dados.
     const dataKeys = Object.keys(response.data);
     const ativos = Object.keys(response.data[dataKeys[0]]);
@@ -137,6 +139,7 @@ async function getStockLastValue(ticker) {
     }, {});
 
     console.log("📊 Dados de last_value da API Finz:", dados_quant);
+    console.log(dados_quant);
     return dados_quant;
   } catch (error) {
     console.error("❌ Erro ao buscar dados na API Finz:", error);
