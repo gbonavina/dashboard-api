@@ -17,13 +17,23 @@ async function getStockData_Daily(ticker, anos = 5) {
     try {
         console.log(`🔍 Buscando dados do Yahoo Finance para ${ticker} (${anos} anos)...`);
 
-        // Converte o ticker para maiúsculas e concatena ".SA" para ações brasileiras
+        // Converte o ticker para o formato correto (ex.: "BBAS3" → "BBAS3.SA")
         const tickerYahoo = `${ticker.toUpperCase()}.SA`;
 
-        // Faz a requisição para o Yahoo Finance
+        // Define a data de hoje e a data de início (anos atrás)
+        const hoje = new Date();
+        const dataInicio = new Date();
+        dataInicio.setFullYear(hoje.getFullYear() - anos);
+
+        // Converte as datas para timestamps (em segundos)
+        const period1 = Math.floor(dataInicio.getTime() / 1000);
+        const period2 = Math.floor(hoje.getTime() / 1000);
+
+        // Faz a requisição para o Yahoo Finance usando period1 e period2
         const result = await yahooFinance.chart(tickerYahoo, {
-            interval: "1d",    // Dados diários
-            range: `${anos}y`,  // Últimos anos (ex: "5y")
+            period1: period1,
+            period2: period2,
+            interval: "1d"
         });
 
         // Verifica se a resposta é válida
@@ -42,20 +52,15 @@ async function getStockData_Daily(ticker, anos = 5) {
             volume: result.indicators.quote[0].volume[index],
         }));
 
-        // Filtra dados a partir da data de início calculada (opcional, pois o range já limita)
-        const hoje = new Date();
-        const dataInicio = new Date();
-        dataInicio.setFullYear(hoje.getFullYear() - anos);
-        const dataInicioFormatada = dataInicio.toISOString().split("T")[0];
-        const dadosFiltrados = stockPrices.filter(dado => dado.date >= dataInicioFormatada);
-
-        console.log("📊 Dados filtrados prontos:", dadosFiltrados);
-        return dadosFiltrados;
+        // Aqui, os dados já estão limitados pelo período passado (period1 a period2)
+        console.log("📊 Dados diários filtrados prontos:", stockPrices);
+        return stockPrices;
     } catch (error) {
         console.error("❌ Erro ao buscar dados do Yahoo Finance:", error);
         return null;
     }
 }
+
 
 
 /**
