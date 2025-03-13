@@ -14,47 +14,49 @@ console.log("API_KEY utilizada:", API_KEY);
  * Retorna um array de objetos ordenados por data (do mais antigo para o mais recente).
  */
 async function getStockData_Daily(ticker, anos = 5) {
-  try {
-    console.log(`🔍 Buscando dados do Yahoo Finance para ${ticker} (${anos} anos)...`);
+    try {
+        console.log(`🔍 Buscando dados do Yahoo Finance para ${ticker} (${anos} anos)...`);
 
-    // Calcula a data de início para filtrar os últimos 'anos' de dados.
-    const hoje = new Date();
-    const dataInicio = new Date();
-    dataInicio.setFullYear(hoje.getFullYear() - anos);
-    const dataInicioFormatada = dataInicio.toISOString().split("T")[0];
+        // Converte o ticker para maiúsculas e concatena ".SA" para ações brasileiras
+        const tickerYahoo = `${ticker.toUpperCase()}.SA`;
 
-    // Faz a requisição para o Yahoo Finance.
-    const result = await yahooFinance.chart(`${ticker}.SA`, {
-      interval: "1d",  // Dados diários.
-      range: `${anos}y`,  // Últimos X anos.
-    });
+        // Faz a requisição para o Yahoo Finance
+        const result = await yahooFinance.chart(tickerYahoo, {
+            interval: "1d",    // Dados diários
+            range: `${anos}y`,  // Últimos anos (ex: "5y")
+        });
 
-    // Verifica se a resposta é válida.
-    if (!result || !result.timestamp || result.timestamp.length === 0) {
-      console.error("⚠️ Erro: Nenhum dado retornado pelo Yahoo Finance.");
-      return null;
+        // Verifica se a resposta é válida
+        if (!result || !result.timestamp || result.timestamp.length === 0) {
+            console.error("⚠️ Erro: Nenhum dado retornado pelo Yahoo Finance.");
+            return null;
+        }
+
+        // Processa os dados retornados
+        const stockPrices = result.timestamp.map((timestamp, index) => ({
+            date: new Date(timestamp * 1000).toISOString().split("T")[0],
+            open: result.indicators.quote[0].open[index],
+            high: result.indicators.quote[0].high[index],
+            low: result.indicators.quote[0].low[index],
+            close: result.indicators.quote[0].close[index],
+            volume: result.indicators.quote[0].volume[index],
+        }));
+
+        // Filtra dados a partir da data de início calculada (opcional, pois o range já limita)
+        const hoje = new Date();
+        const dataInicio = new Date();
+        dataInicio.setFullYear(hoje.getFullYear() - anos);
+        const dataInicioFormatada = dataInicio.toISOString().split("T")[0];
+        const dadosFiltrados = stockPrices.filter(dado => dado.date >= dataInicioFormatada);
+
+        console.log("📊 Dados filtrados prontos:", dadosFiltrados);
+        return dadosFiltrados;
+    } catch (error) {
+        console.error("❌ Erro ao buscar dados do Yahoo Finance:", error);
+        return null;
     }
-
-    // Processa os dados: converte timestamp e monta o array.
-    const stockPrices = result.timestamp.map((timestamp, index) => ({
-      date: new Date(timestamp * 1000).toISOString().split("T")[0],
-      open: result.indicators.quote[0].open[index],
-      high: result.indicators.quote[0].high[index],
-      low: result.indicators.quote[0].low[index],
-      close: result.indicators.quote[0].close[index],
-      volume: result.indicators.quote[0].volume[index],
-    }));
-
-    // Filtra apenas os dados a partir da data de início.
-    const dadosFiltrados = stockPrices.filter(dado => dado.date >= dataInicioFormatada);
-    
-    console.log("📊 Dados diários filtrados prontos:", dadosFiltrados);
-    return dadosFiltrados;
-  } catch (error) {
-    console.error("❌ Erro ao buscar dados do Yahoo Finance:", error);
-    return null;
-  }
 }
+
 
 /**
  * Versão cacheada da função getStockData_Daily.
