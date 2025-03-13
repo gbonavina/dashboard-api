@@ -72,60 +72,53 @@ async function getStockData_Daily(ticker, start, end) {
 
     try {
         const response = await axios.get(API_URL_FINZ);
-        // console.log("🔍 Resposta da API Finz:", response.data);
-    
+
         if (Object.keys(response.data).length === 0) {
             console.error("⚠️ Erro: Nenhuma data encontrada na API Finz.");
             return null;
         }
-    
-        let dataKeys = Object.keys(response.data); // Lista das datas disponíveis
-        let ativos = Object.keys(response.data[dataKeys[0]]); // Lista de ativos na resposta
-    
+
+        let dataKeys = Object.keys(response.data);
+        let ativos = Object.keys(response.data[dataKeys[0]]);
         let tickerCorreto = ativos.find(t => t.toLowerCase() === finz_ticker.toLowerCase());
-    
+
         if (!tickerCorreto) {
             console.error("⚠️ Erro: Ativo não encontrado na API Finz.");
             return null;
         }
-    
+
         let raw_dados_quant = response.data[dataKeys[0]][tickerCorreto];
-    
+
         dados_quant = Object.keys(raw_dados_quant).reduce((acc, key) => {
             let newKey = key
                 .toLowerCase()
                 .replace('ç', 'c')
                 .replace('ã', 'a')
                 .replace(/[^a-z0-9]/g, "_");
-    
+
             let value = raw_dados_quant[key];
-    
+
             if (typeof value === "string" && value.match(/^\d+,\d+$/)) {
                 value = parseFloat(value.replace(",", ".").trim());
             }
-    
+
             acc[newKey] = value;
             return acc;
         }, {});
-    
+
     } catch (error) {
         console.error("Erro ao buscar dados na API Finz:", error);
         return null;
     }
-
-    // Remova essa verificação para que start e end sejam opcionais:
-    // if (!start || !end) {
-    //    return null;
-    // }
 
     const API_URL_AV = `https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol=${ticker}.SAO&apikey=${API_KEY}`;
     
     try {
         const response = await axios.get(API_URL_AV, { 
             timeout: 15000,
-            headers: { "User-Agent": "Mozilla/5.0" } // Adiciona User-Agent
+            headers: { "User-Agent": "Mozilla/5.0" }
         });
-    
+
         console.log("Resposta da Alpha Vantage:", response.data);
         
         if (!response.data || response.data["Error Message"]) {
@@ -143,19 +136,15 @@ async function getStockData_Daily(ticker, start, end) {
             volume: parseFloat(data[date]["5. volume"])
         }));
 
-        if (start != null && end != null) {
+        // ✅ Agora, sempre retorna TODOS os dados dentro do intervalo
+        if (start && end) {
             stockPrices = stockPrices.filter(stock => {
                 const stockDate = new Date(stock.date);
-                return stockDate >= new Date(start.split("-").reverse().join("-")) &&
-                       stockDate <= new Date(end.split("-").reverse().join("-"));
+                return stockDate >= new Date(start) && stockDate <= new Date(end);
             });
-        } else {
-            // Se start e end não foram informados, retorna o registro mais recente
-            stockPrices = [stockPrices[0]];
         }
 
         if (dados_quant) {
-            // Mescla os dados da API Finz com o primeiro registro do Alpha Vantage
             stockPrices[0] = { ...stockPrices[0], ...dados_quant };
         } else {
             console.warn("⚠️ Aviso: Nenhum dado encontrado na API Finz para esse ativo.");
@@ -173,6 +162,7 @@ async function getStockData_Daily(ticker, start, end) {
         return null;
     }
 }
+
 
 async function getStockData_Daily_CACHED(ticker, start, end) {
     // implementaçao de cache
