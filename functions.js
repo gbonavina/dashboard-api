@@ -63,7 +63,7 @@ async function getStockData_Weekly_CACHED(ticker) {
 
 }
 
-async function getStockData_Daily(ticker, start, end) {
+async function getStockData_Daily(ticker) {
     const finz_ticker = ticker.replace(/\.sao/i, "").toLowerCase();
     let tipo_ativo = detectarTipoAtivo(finz_ticker);
     const API_URL_FINZ = `https://finz-api-evlu.onrender.com/${tipo_ativo}/${finz_ticker}`;
@@ -111,7 +111,7 @@ async function getStockData_Daily(ticker, start, end) {
         return null;
     }
 
-    const API_URL_AV = `https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol=${ticker}.SAO&apikey=${API_KEY}`;
+    const API_URL_AV = `https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol=${ticker}.SAO&outputsize=full&apikey=${API_KEY}`;
     
     try {
         const response = await axios.get(API_URL_AV, { 
@@ -119,10 +119,10 @@ async function getStockData_Daily(ticker, start, end) {
             headers: { "User-Agent": "Mozilla/5.0" }
         });
 
-        console.log("Resposta da Alpha Vantage:", response.data);
+        console.log("📊 Resposta da Alpha Vantage:", response.data);
         
         if (!response.data || response.data["Error Message"]) {
-            console.error("Erro na API Alpha Vantage:", response.data);
+            console.error("❌ Erro na API Alpha Vantage:", response.data);
             return null;
         }
 
@@ -136,14 +136,6 @@ async function getStockData_Daily(ticker, start, end) {
             volume: parseFloat(data[date]["5. volume"])
         }));
 
-        // ✅ Agora, sempre retorna TODOS os dados dentro do intervalo
-        if (start && end) {
-            stockPrices = stockPrices.filter(stock => {
-                const stockDate = new Date(stock.date);
-                return stockDate >= new Date(start) && stockDate <= new Date(end);
-            });
-        }
-
         if (dados_quant) {
             stockPrices[0] = { ...stockPrices[0], ...dados_quant };
         } else {
@@ -151,7 +143,7 @@ async function getStockData_Daily(ticker, start, end) {
         }
 
         if (stockPrices.length === 0) {
-            console.error("⚠️ Erro: Nenhum dado encontrado dentro do período solicitado.");
+            console.error("⚠️ Erro: Nenhum dado retornado.");
             return null;
         }
 
@@ -164,18 +156,18 @@ async function getStockData_Daily(ticker, start, end) {
 }
 
 
-async function getStockData_Daily_CACHED(ticker, start, end) {
-    // Gera uma chave única para cada combinação de ticker, start e end
-    const cacheKey = `stockData_Daily_${ticker}_${start || "null"}_${end || "null"}`;
+async function getStockData_Daily_CACHED(ticker) {
+    // Chave de cache apenas com o ticker, sem `start` e `end`
+    const cacheKey = `stockData_Daily_${ticker}`;
     const cachedData = cache.get(cacheKey);
 
     if (cachedData) {
-        console.log(`📦 Dados encontrados em cache para ${ticker} (${start} - ${end})`);
+        console.log(`📦 Dados encontrados em cache para ${ticker}`);
         return cachedData;
     }
 
-    console.log(`🔄 Buscando novos dados para ${ticker} (${start} - ${end})`);
-    const stockData = await getStockData_Daily(ticker, start, end);
+    console.log(`🔄 Buscando novos dados para ${ticker}`);
+    const stockData = await getStockData_Daily(ticker);
 
     if (stockData) {
         cache.set(cacheKey, stockData);
@@ -183,6 +175,7 @@ async function getStockData_Daily_CACHED(ticker, start, end) {
 
     return stockData;
 }
+
 
 
 function validateData(ticker) {
