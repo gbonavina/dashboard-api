@@ -1,4 +1,5 @@
 import axios from 'axios';
+import yahooFinance from "yahoo-finance2";
 import NodeCache from 'node-cache';
 import dotenv from 'dotenv';
 dotenv.config();
@@ -63,111 +64,66 @@ async function getStockData_Weekly_CACHED(ticker) {
 
 }
 
-async function getStockData_Daily(ticker) {
-    const finz_ticker = ticker.replace(/\.sao/i, "").toLowerCase();
-    let tipo_ativo = detectarTipoAtivo(finz_ticker);
-    const API_URL_FINZ = `https://finz-api-evlu.onrender.com/${tipo_ativo}/${finz_ticker}`;
-
-    let dados_quant = null;
-
+async function getStockData_Daily(ticker, anos = 5) {
     try {
-        const response = await axios.get(API_URL_FINZ);
+        console.log(`🔍 Buscando dados do Yahoo Finance para ${ticker} (${anos} anos)...`);
 
-        if (Object.keys(response.data).length === 0) {
-            console.error("⚠️ Erro: Nenhuma data encontrada na API Finz.");
-            return null;
-        }
+        // 📌 Define o intervalo com base nos anos passados como parâmetro
+        const hoje = new Date();
+        const dataInicio = new Date();
+        dataInicio.setFullYear(hoje.getFullYear() - anos);
 
-        let dataKeys = Object.keys(response.data);
-        let ativos = Object.keys(response.data[dataKeys[0]]);
-        let tickerCorreto = ativos.find(t => t.toLowerCase() === finz_ticker.toLowerCase());
+        // 📌 Formata a data para o padrão exigido pelo Yahoo Finance (YYYY-MM-DD)
+        const dataInicioFormatada = dataInicio.toISOString().split("T")[0];
 
-        if (!tickerCorreto) {
-            console.error("⚠️ Erro: Ativo não encontrado na API Finz.");
-            return null;
-        }
-
-        let raw_dados_quant = response.data[dataKeys[0]][tickerCorreto];
-
-        dados_quant = Object.keys(raw_dados_quant).reduce((acc, key) => {
-            let newKey = key
-                .toLowerCase()
-                .replace('ç', 'c')
-                .replace('ã', 'a')
-                .replace(/[^a-z0-9]/g, "_");
-
-            let value = raw_dados_quant[key];
-
-            if (typeof value === "string" && value.match(/^\d+,\d+$/)) {
-                value = parseFloat(value.replace(",", ".").trim());
-            }
-
-            acc[newKey] = value;
-            return acc;
-        }, {});
-
-    } catch (error) {
-        console.error("Erro ao buscar dados na API Finz:", error);
-        return null;
-    }
-
-    const API_URL_AV = `https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol=${ticker}.SAO&outputsize=full&apikey=${API_KEY}`;
-    
-    try {
-        const response = await axios.get(API_URL_AV, { 
-            timeout: 15000,
-            headers: { "User-Agent": "Mozilla/5.0" }
+        // 🔄 Faz a requisição para a API do Yahoo Finance
+        const result = await yahooFinance.chart(`${ticker}.SA`, {
+            interval: "1d",  // 🎯 Dados diários
+            range: `${anos}y`,  // 🕒 Últimos X anos
         });
 
-        console.log("📊 Resposta da Alpha Vantage:", response.data);
-        
-        if (!response.data || response.data["Error Message"]) {
-            console.error("❌ Erro na API Alpha Vantage:", response.data);
+        // 🛠 Verifica se recebeu resposta válida
+        if (!result || !result.timestamp || result.timestamp.length === 0) {
+            console.error("⚠️ Erro: Nenhum dado retornado pelo Yahoo Finance.");
             return null;
         }
 
-        const data = response.data["Time Series (Daily)"];
-        let stockPrices = Object.keys(data).map(date => ({
-            date: date,
-            open: parseFloat(data[date]["1. open"]),
-            high: parseFloat(data[date]["2. high"]),
-            low: parseFloat(data[date]["3. low"]),
-            close: parseFloat(data[date]["4. close"]),
-            volume: parseFloat(data[date]["5. volume"])
+        // 📊 Processa os dados retornados
+        const stockPrices = result.timestamp.map((timestamp, index) => ({
+            date: new Date(timestamp * 1000).toISOString().split("T")[0], // Converte timestamp para YYYY-MM-DD
+            open: result.indicators.quote[0].open[index],
+            high: result.indicators.quote[0].high[index],
+            low: result.indicators.quote[0].low[index],
+            close: result.indicators.quote[0].close[index],
+            volume: result.indicators.quote[0].volume[index],
         }));
 
-        if (dados_quant) {
-            stockPrices[0] = { ...stockPrices[0], ...dados_quant };
-        } else {
-            console.warn("⚠️ Aviso: Nenhum dado encontrado na API Finz para esse ativo.");
-        }
+        // 🛠 Filtra apenas os dados a partir da data de início
+        const dadosFiltrados = stockPrices.filter(dado => dado.date >= dataInicioFormatada);
 
-        if (stockPrices.length === 0) {
-            console.error("⚠️ Erro: Nenhum dado retornado.");
-            return null;
-        }
-
-        return stockPrices;
-
+        console.log("📊 Dados filtrados prontos:", dadosFiltrados);
+        return dadosFiltrados;
     } catch (error) {
-        console.error("❌ Erro ao buscar dados da Alpha Vantage:", error);
+        console.error("❌ Erro ao buscar dados do Yahoo Finance:", error);
         return null;
     }
 }
 
+// 📦 Implementação de cache
+import NodeCache from 'node-cache';
+const cache = new NodeCache({ stdTTL: 3600 });
 
-async function getStockData_Daily_CACHED(ticker) {
-    // Chave de cache apenas com o ticker, sem `start` e `end`
-    const cacheKey = `stockData_Daily_${ticker}`;
+async function getStockData_Daily_CACHED(ticker, anos = 5) {
+    const cacheKey = `stockData_Daily_${ticker}_${anos}anos`;
     const cachedData = cache.get(cacheKey);
 
     if (cachedData) {
-        console.log(`📦 Dados encontrados em cache para ${ticker}`);
+        console.log(`📦 Dados encontrados em cache para ${ticker} (${anos} anos)`);
         return cachedData;
     }
 
-    console.log(`🔄 Buscando novos dados para ${ticker}`);
-    const stockData = await getStockData_Daily(ticker);
+    console.log(`🔄 Buscando novos dados para ${ticker} (${anos} anos)`);
+    const stockData = await getStockData_Daily(ticker, anos);
 
     if (stockData) {
         cache.set(cacheKey, stockData);
@@ -175,8 +131,6 @@ async function getStockData_Daily_CACHED(ticker) {
 
     return stockData;
 }
-
-
 
 function validateData(ticker) {
     if (!ticker) {
