@@ -1,27 +1,30 @@
 import express from 'express';
-import { getStockData_Weekly_CACHED, getStockData_Daily_CACHED, validateData, detectarTipoAtivo } from './functions.js';
+import { 
+  getStockData_Weekly_CACHED, 
+  getStockData_Daily_CACHED, 
+  validateData, 
+  detectarTipoAtivo 
+} from './functions.js';
+import cors from "cors";
 
 const app = express();
 const port = process.env.PORT || 5000; 
 
-import cors from "cors";
+// Configuração de CORS (para testes, permitindo qualquer origem)
 app.use((req, res, next) => {
-    res.header("Access-Control-Allow-Origin", "*"); // 🔥 Para testes. Troque "*" pelo domínio do frontend na produção
+    res.header("Access-Control-Allow-Origin", "*"); // Em produção, especifique a origem
     res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
     res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
     next();
-});
-app.listen(port, () => {
-    console.log(`API de dados de ações rodando em http://localhost:${port}`);
 });
 
 app.use(express.json());
 
 app.get("/", (req, res) => {
-    res.send("Bem vindo a API de dados de ações!");
+    res.send("Bem vindo à API de dados de ações!");
 });
 
-// endpoint para pegar o histórico semanal de uma ação
+// Endpoint para pegar o histórico semanal de uma ação
 app.get("/stock/weekly/:ticker", async (req, res) => {
     const { ticker } = req.params;
 
@@ -31,20 +34,18 @@ app.get("/stock/weekly/:ticker", async (req, res) => {
 
     try {
         const stockData = await getStockData_Weekly_CACHED(ticker);
-        // if (!stockData) { 
-        //     return res.status(404).json({ error: "Dados não encontrados." });
-        // }
         return res.json(stockData);
-    } catch {
-        console.error("Erro ao buscar dados.");
+    } catch (error) {
+        console.error("Erro ao buscar dados:", error);
         return res.status(503).json({ error: "Erro ao buscar dados." });
     }
-
 });
 
+// Endpoint para pegar o histórico diário de uma ação (Yahoo Finance)
+// Permite escolher entre os últimos 5 ou 10 anos via query string (?anos=5 ou ?anos=10)
 app.get("/stock/daily/:ticker", async (req, res) => {
     const { ticker } = req.params;
-    const anos = req.query.anos ? parseInt(req.query.anos) : 5; // 📌 Padrão: 5 anos
+    const anos = req.query.anos ? parseInt(req.query.anos) : 5; // Padrão: 5 anos
 
     if (!validateData(ticker)) {
         return res.status(400).json({ error: "Ticker inválido." });
@@ -69,24 +70,30 @@ app.get("/stock/daily/:ticker", async (req, res) => {
     }
 });
 
-// endpoint para pegar o histórico do dia de uma ação
+// Endpoint para pegar o último valor de uma ação (retorna o registro mais recente dos dados diários)
 app.get("/stock/last_value/:ticker", async (req, res) => { 
     const { ticker } = req.params;
 
     if (!validateData(ticker)) {
-        return res.status(400).json({error: "Ticker inválido."})
+        return res.status(400).json({ error: "Ticker inválido." });
     }
 
     try {
-        const stockData = await getStockData_Daily_CACHED(ticker);
-        if(!stockData) {
-            return res.status(404).json({error: "Dados não encontrados."})
+        // Utiliza o endpoint diário com 5 anos como padrão para buscar todos os dados e retorna o registro mais recente
+        const stockData = await getStockData_Daily_CACHED(ticker, 5);
+
+        if (!stockData || stockData.length === 0) {
+            return res.status(404).json({ error: "Dados não encontrados." });
         }
-        else {
-            return res.json(stockData[0]);
-        }
-    } catch {
-        console.error("Erro ao buscar dados.")
-        return res.status(503).json({error: "Erro ao buscar dados."})
+
+        // Retorna o registro mais recente (último elemento do array)
+        return res.json(stockData[stockData.length - 1]);
+    } catch (error) {
+        console.error("Erro ao buscar dados:", error);
+        return res.status(503).json({ error: "Erro ao buscar dados." });
     }
+});
+
+app.listen(port, () => {
+    console.log(`API de dados de ações rodando em http://localhost:${port}`);
 });
