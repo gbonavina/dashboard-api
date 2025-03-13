@@ -110,9 +110,6 @@ async function getStockData_Daily(ticker, anos = 5) {
 }
 
 // 📦 Implementação de cache
-import NodeCache from 'node-cache';
-const cache = new NodeCache({ stdTTL: 3600 });
-
 async function getStockData_Daily_CACHED(ticker, anos = 5) {
     const cacheKey = `stockData_Daily_${ticker}_${anos}anos`;
     const cachedData = cache.get(cacheKey);
