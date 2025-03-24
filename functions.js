@@ -17,30 +17,25 @@ async function getStockData_Daily(ticker, anos = 5) {
     try {
         console.log(`🔍 Buscando dados do Yahoo Finance para ${ticker} (${anos} anos)...`);
         
-        // Converte o ticker para maiúsculas e concatena ".SA" para ações brasileiras
         const tickerYahoo = `${ticker.toUpperCase()}.SA`;
         
-        // Define as datas de início e fim para calcular o período (usando timestamps)
         const hoje = new Date();
         const dataInicio = new Date();
         dataInicio.setFullYear(hoje.getFullYear() - anos);
         const period1 = Math.floor(dataInicio.getTime() / 1000);
         const period2 = Math.floor(hoje.getTime() / 1000);
         
-        // Faz a requisição para o Yahoo Finance usando period1 e period2
         const result = await yahooFinance.chart(tickerYahoo, {
             period1: period1,
             period2: period2,
             interval: "1d"
         });
         
-        // Log para depuração
         if (!result) {
             console.error("⚠️ Erro: Nenhum dado retornado pelo Yahoo Finance.");
             return null;
         }
         
-        // Se a resposta possui 'quotes', usamos ela
         let stockPrices = [];
         if (result.quotes && Array.isArray(result.quotes)) {
             stockPrices = result.quotes.map(quote => ({
@@ -52,7 +47,6 @@ async function getStockData_Daily(ticker, anos = 5) {
                 volume: quote.volume,
             }));
         } else if (result.timestamp && result.indicators && result.indicators.quote) {
-            // Caso a estrutura seja a do teste simples, use essa abordagem:
             stockPrices = result.timestamp.map((timestamp, index) => ({
                 date: new Date(timestamp * 1000).toISOString().split("T")[0],
                 open: result.indicators.quote[0].open[index],
@@ -66,7 +60,6 @@ async function getStockData_Daily(ticker, anos = 5) {
             return null;
         }
         
-        // Filtra os dados a partir da data de início (opcional se a API já retornar só esse período)
         const dataInicioFormatada = dataInicio.toISOString().split("T")[0];
         const dadosFiltrados = stockPrices.filter(dado => dado.date >= dataInicioFormatada);
         
@@ -115,7 +108,6 @@ async function getStockLastValue(ticker) {
 
     console.log("Dados recebidos da finz");
     
-    // Supondo que a API Finz retorne um objeto onde a primeira chave possui os dados.
     const dataKeys = Object.keys(response.data);
     const ativos = Object.keys(response.data[dataKeys[0]]);
     const tickerCorreto = ativos.find(t => t.toLowerCase() === finz_ticker.toLowerCase());
@@ -126,8 +118,7 @@ async function getStockLastValue(ticker) {
     }
 
     const raw_dados_quant = response.data[dataKeys[0]][tickerCorreto];
-
-    // Processa os dados (ex.: "cotacao": "R$ 27,05" → converte para número).
+      
     const dados_quant = Object.keys(raw_dados_quant).reduce((acc, key) => {
       const newKey = key.toLowerCase().replace('ç', 'c').replace('ã', 'a').replace(/[^a-z0-9]/g, "_");
       let value = raw_dados_quant[key];
@@ -184,7 +175,6 @@ function detectarTipoAtivo(ticker) {
   const units = new Set(["BPAC11", "KLBN11", "SANB11", "IGTI11", "TAEE11", "ENGI11", "SAPR11", "ALUP11", "BRBI11", "DASA11", "AMAR11", "AZEV11", "RNEW11",
     "BIOM11", "PPLA11", "PINE11", "PSVM11"]);
   ticker = ticker.toUpperCase();
-  // Ações normais (4 letras + 1 número)
   if (/^[A-Za-z]{4}\d$/.test(ticker)) {
     return "acoes";
   }
